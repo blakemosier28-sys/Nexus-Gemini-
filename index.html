@@ -1,57 +1,49 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NEXUS SOVEREIGN</title>
-    <script src="https://cdn.jsdelivr.net/npm/@mentra/sdk@latest/dist/index.bundle.js"></script>
-    <style>
-        body { background: #000; color: #00ff41; font-family: monospace; padding: 20px; }
-        #terminal { height: 70vh; overflow-y: auto; border: 1px solid #00ff41; padding: 15px; margin-bottom: 15px; background: rgba(0,20,0,0.9); }
-        input { width: 100%; background: #000; border: 1px solid #00ff41; color: #00ff41; padding: 12px; font-size: 1.1em; outline: none; box-sizing: border-box; }
-        .log { margin-bottom: 8px; border-left: 2px solid #008f11; padding-left: 10px; }
-    </style>
-</head>
-<body>
-    <div style="font-size: 0.8em; color: #008f11; border-bottom: 1px solid #008f11; padding-bottom: 5px; margin-bottom: 10px;">
-        NEXUS_v3.1 | BRAIN: GEMINI_PRO_3.1 | HARDWARE: MENTRA_LIVE
-    </div>
-    <div id="terminal">[SYSTEM READY] Double-tap glasses to capture vision...</div>
-    <input type="text" id="userInput" placeholder="Command NEXUS..." onkeypress="handleKey(event)">
+<input type="text" id="userInput" placeholder="Command NEXUS..." autocomplete="off">
 
-    <script>
-        // REPLACE THIS WITH YOUR KEY FROM aistudio.google.com
-        const API_KEY = "AIzaSyCRt0MNX7qoLh9N3nS1BPrmMXdZ7HBTcXY";
-
-        <script>
-    // YOUR SAVED KEY
+<script>
     const API_KEY = "AIzaSyCRt0MNX7qoLh9N3nS1BPrmMXdZ7HBTcXY";
+    const inputField = document.getElementById('userInput');
 
-    async function nexusBrain(text, base64Image = null) {
-        // UPDATED 2026 ENDPOINT: Using the stable 1.5-pro or 3.1-pro-preview
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${API_KEY}`;
-        
-        const parts = [{ text: text }];
-        if (base64Image) {
-            parts.push({ inline_data: { mime_type: "image/jpeg", data: base64Image } });
+    // Use 'keydown' or a form listener instead of 'onkeypress'
+    inputField.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault(); // Stop the page from reloading
+            const val = this.value.trim();
+            if (val) {
+                handleCommand(val);
+                this.value = ''; // Clear the box
+            }
         }
+    });
+
+    async function handleCommand(userMsg) {
+        updateLog("USER", userMsg);
+        updateLog("SYSTEM", "Querying Gemini Brain...");
 
         try {
+            // Using 1.5-pro for maximum stability in 2026
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${API_KEY}`;
             const response = await fetch(url, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ contents: [{ parts: parts }] })
+                body: JSON.stringify({ contents: [{ parts: [{ text: userMsg }] }] })
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                return `[SYSTEM ERROR] ${errorData.error.message}`;
+            const data = await response.json();
+            
+            if (data.error) {
+                updateLog("ERROR", data.error.message);
+                return;
             }
 
-            const data = await response.json();
-            return data.candidates[0].content.parts[0].text;
+            const res = data.candidates[0].content.parts[0].text;
+            updateLog("NEXUS", res);
+
+            if (typeof mentra !== 'undefined') {
+                mentra.audio.speak(res);
+            }
         } catch (err) {
-            return "[CONNECTION ERROR] Check your internet or API key status.";
+            updateLog("ERROR", "Brain timeout. Check internet.");
         }
     }
 
@@ -59,25 +51,5 @@
         const term = document.getElementById('terminal');
         term.innerHTML += `<div class="log"><strong>[${src}]</strong> ${msg}</div>`;
         term.scrollTop = term.scrollHeight;
-    }
-
-    function handleKey(e) {
-        if (e.key === 'Enter' && e.target.value) {
-            const userMsg = e.target.value;
-            updateLog("USER", userMsg);
-            e.target.value = ''; // Clear input immediately
-            
-            updateLog("SYSTEM", "Querying Gemini Brain...");
-            
-            nexusBrain(userMsg).then(res => {
-                updateLog("NEXUS", res);
-                // If Mentra is connected, speak it
-                if (typeof mentra !== 'undefined') {
-                    mentra.audio.speak(res);
-                }
-            }).catch(err => {
-                updateLog("ERROR", "Brain timeout.");
-            });
-        }
     }
 </script>
