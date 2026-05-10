@@ -1,55 +1,69 @@
-<input type="text" id="userInput" placeholder="Command NEXUS..." autocomplete="off">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NEXUS SOVEREIGN</title>
+    <style>
+        body { background: #000; color: #00ff41; font-family: monospace; padding: 10px; margin: 0; }
+        #terminal { height: 60vh; overflow-y: auto; border: 1px solid #00ff41; padding: 10px; margin-bottom: 10px; background: #000d00; font-size: 14px; }
+        .input-wrap { display: flex; gap: 5px; }
+        input { flex: 1; background: #000; border: 1px solid #00ff41; color: #00ff41; padding: 12px; font-size: 16px; outline: none; }
+        button { background: #00ff41; color: #000; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; }
+        .log { margin-bottom: 8px; border-left: 2px solid #004400; padding-left: 8px; }
+    </style>
+</head>
+<body>
+    <div style="font-size: 0.8em; margin-bottom: 10px;">NEXUS_v3.1 | ACTIVE_NODE</div>
+    <div id="terminal">[SYSTEM READY] Type and hit Send.</div>
+    <div class="input-wrap">
+        <input type="text" id="userInput" placeholder="Command..." autocomplete="off">
+        <button onclick="runCommand()">SEND</button>
+    </div>
 
-<script>
-    const API_KEY = "AIzaSyCRt0MNX7qoLh9N3nS1BPrmMXdZ7HBTcXY";
-    const inputField = document.getElementById('userInput');
-
-    // Use 'keydown' or a form listener instead of 'onkeypress'
-    inputField.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') {
-            e.preventDefault(); // Stop the page from reloading
-            const val = this.value.trim();
-            if (val) {
-                handleCommand(val);
-                this.value = ''; // Clear the box
-            }
-        }
-    });
-
-    async function handleCommand(userMsg) {
-        updateLog("USER", userMsg);
-        updateLog("SYSTEM", "Querying Gemini Brain...");
-
-        try {
-            // Using 1.5-pro for maximum stability in 2026
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${API_KEY}`;
-            const response = await fetch(url, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ contents: [{ parts: [{ text: userMsg }] }] })
-            });
-
-            const data = await response.json();
-            
-            if (data.error) {
-                updateLog("ERROR", data.error.message);
-                return;
-            }
-
-            const res = data.candidates[0].content.parts[0].text;
-            updateLog("NEXUS", res);
-
-            if (typeof mentra !== 'undefined') {
-                mentra.audio.speak(res);
-            }
-        } catch (err) {
-            updateLog("ERROR", "Brain timeout. Check internet.");
-        }
-    }
-
-    function updateLog(src, msg) {
+    <script>
+        const API_KEY = "AIzaSyCRt0MNX7qoLh9N3nS1BPrmMXdZ7HBTcXY";
         const term = document.getElementById('terminal');
-        term.innerHTML += `<div class="log"><strong>[${src}]</strong> ${msg}</div>`;
-        term.scrollTop = term.scrollHeight;
-    }
-</script>
+        const input = document.getElementById('userInput');
+
+        function updateLog(src, msg) {
+            term.innerHTML += `<div class="log"><strong>[${src}]</strong> ${msg}</div>`;
+            term.scrollTop = term.scrollHeight;
+        }
+
+        async function runCommand() {
+            const val = input.value.trim();
+            if (!val) return;
+
+            updateLog("USER", val);
+            input.value = ''; // Clear input
+            updateLog("SYSTEM", "Querying Gemini...");
+
+            try {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${API_KEY}`;
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: val }] }] })
+                });
+
+                const data = await response.json();
+                
+                if (data.error) {
+                    updateLog("ERROR", data.error.message);
+                } else {
+                    const res = data.candidates[0].content.parts[0].text;
+                    updateLog("NEXUS", res);
+                }
+            } catch (err) {
+                updateLog("ERROR", "Check connection/API Key.");
+            }
+        }
+
+        // Handle physical Enter key
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') runCommand();
+        });
+    </script>
+</body>
+</html>
