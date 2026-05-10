@@ -5,7 +5,11 @@
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#00ff41",
-  "permissions": ["camera", "microphone", "bluetooth"],
+  "req_permissions": [
+    { "name": "camera" },
+    { "name": "microphone" },
+    { "name": "bluetooth" }
+  ],
   "icons": [
     {
       "src": "https://cdn-icons-png.flaticon.com/512/2103/2103633.png",
