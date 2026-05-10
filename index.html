@@ -1,57 +1,64 @@
-<script>
-    // YOUR VERIFIED API KEY
-    const API_KEY = "AIzaSyCRt0MNX7qoLh9N3nS1BPrmMXdZ7HBTcXY";
-    const term = document.getElementById('terminal');
-    const input = document.getElementById('userInput');
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>NEXUS</title>
+    <style>
+        body { background: #000; color: #00ff41; font-family: monospace; margin: 0; padding: 10px; }
+        #term { height: 70vh; overflow-y: auto; border: 1px solid #00ff41; padding: 10px; background: #000d00; margin-bottom: 10px; }
+        .row { display: flex; gap: 5px; }
+        input { flex: 1; background: #000; border: 1px solid #00ff41; color: #00ff41; padding: 12px; font-size: 16px; outline: none; }
+        button { background: #00ff41; color: #000; border: none; padding: 10px; font-weight: bold; }
+        .log { margin-bottom: 8px; }
+    </style>
+</head>
+<body>
+    <div style="font-size: 0.8em; margin-bottom: 5px;">NEXUS_v3.1 | STABLE_BUILD</div>
+    <div id="term">READY...</div>
+    <div class="row">
+        <input type="text" id="in" placeholder="Type here..." autocomplete="off">
+        <button onclick="run()">SEND</button>
+    </div>
 
-    function updateLog(src, msg) {
-        const div = document.createElement('div');
-        div.className = 'log';
-        div.innerHTML = `<strong>[${src}]</strong> ${msg}`;
-        term.appendChild(div);
-        term.scrollTop = term.scrollHeight;
-    }
+    <script>
+        const KEY = "AIzaSyCRt0MNX7qoLh9N3nS1BPrmMXdZ7HBTcXY";
+        const box = document.getElementById('term');
+        const ui = document.getElementById('in');
 
-    async function runCommand() {
-        const val = input.value.trim();
-        if (!val) return;
+        function print(s, m) {
+            box.innerHTML += `<div class="log"><strong>[${s}]</strong> ${m}</div>`;
+            box.scrollTop = box.scrollHeight;
+        }
 
-        updateLog("USER", val);
-        input.value = ''; 
-        updateLog("SYSTEM", "Querying Gemini 3.1 Pro...");
+        async function run() {
+            const txt = ui.value.trim();
+            if (!txt) return;
 
-        try {
-            // UPDATED 2026 ENDPOINT: Using the specific stable model string
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
-            
-            const response = await fetch(url, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ contents: [{ parts: [{ text: val }] }] })
-            });
+            print("USER", txt);
+            ui.value = "";
+            print("SYS", "Querying Brain...");
 
-            const data = await response.json();
-            
-            if (data.error) {
-                // This will tell us if it's an API Key error or a server error
-                updateLog("ERROR", `${data.error.code}: ${data.error.message}`);
-            } else if (data.candidates && data.candidates[0].content) {
-                const res = data.candidates[0].content.parts[0].text;
-                updateLog("NEXUS", res);
-                if (typeof mentra !== 'undefined') mentra.audio.speak(res);
-            } else {
-                updateLog("ERROR", "Empty response from Brain. Try again.");
+            try {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${KEY}`;
+                const res = await fetch(url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: txt }] }] })
+                });
+
+                const data = await res.json();
+                if (data.error) {
+                    print("ERR", data.error.message);
+                } else {
+                    print("NEXUS", data.candidates[0].content.parts[0].text);
+                }
+            } catch (e) {
+                print("ERR", "Network Failure");
             }
-        } catch (err) {
-            updateLog("ERROR", "Network failure. Check your Fold 7 internet.");
         }
-    }
 
-    // Physical and Virtual Enter detection
-    input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            runCommand();
-        }
-    });
-</script>
+        ui.addEventListener('keydown', (e) => { if (e.key === 'Enter') run(); });
+    </script>
+</body>
+</html>
