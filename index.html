@@ -3,25 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-    <title>NEXUS</title>
+    <title>NEXUS SOVEREIGN</title>
     <style>
-        body { background: #000; color: #00ff41; font-family: monospace; margin: 0; padding: 10px; }
-        #term { height: 70vh; overflow-y: auto; border: 1px solid #00ff41; padding: 10px; background: #000d00; margin-bottom: 10px; }
+        body { background: #000; color: #00ff41; font-family: 'Courier New', monospace; margin: 0; padding: 10px; }
+        #term { height: 75vh; overflow-y: auto; border: 1px solid #00ff41; padding: 10px; background: #000d00; margin-bottom: 10px; font-size: 14px; }
         .row { display: flex; gap: 5px; }
         input { flex: 1; background: #000; border: 1px solid #00ff41; color: #00ff41; padding: 12px; font-size: 16px; outline: none; }
-        button { background: #00ff41; color: #000; border: none; padding: 10px; font-weight: bold; }
-        .log { margin-bottom: 8px; }
+        button { background: #00ff41; color: #000; border: none; padding: 10px 15px; font-weight: bold; cursor: pointer; }
+        .log { margin-bottom: 8px; border-left: 2px solid #004400; padding-left: 8px; }
     </style>
 </head>
 <body>
-    <div style="font-size: 0.8em; margin-bottom: 5px;">NEXUS_v3.1 | STABLE_BUILD</div>
-    <div id="term">READY...</div>
+    <div style="font-size: 0.8em; margin-bottom: 5px; color: #008f11;">NEXUS_v3.1 | ENGINE: GEMINI_3.1_PRO</div>
+    <div id="term">TERMINAL READY...</div>
     <div class="row">
-        <input type="text" id="in" placeholder="Type here..." autocomplete="off">
+        <input type="text" id="in" placeholder="Command NEXUS..." autocomplete="off">
         <button onclick="run()">SEND</button>
     </div>
 
     <script>
+        // YOUR API KEY
         const KEY = "AIzaSyCRt0MNX7qoLh9N3nS1BPrmMXdZ7HBTcXY";
         const box = document.getElementById('term');
         const ui = document.getElementById('in');
@@ -37,10 +38,12 @@
 
             print("USER", txt);
             ui.value = "";
-            print("SYS", "Querying Brain...");
+            print("SYS", "Querying Gemini 3.1 Pro...");
 
             try {
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${KEY}`;
+                // OFFICIAL 2026 PRODUCTION ENDPOINT FOR 3.1 PRO
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro:generateContent?key=${KEY}`;
+                
                 const res = await fetch(url, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -48,17 +51,26 @@
                 });
 
                 const data = await res.json();
+                
                 if (data.error) {
                     print("ERR", data.error.message);
-                } else {
+                } else if (data.candidates && data.candidates[0].content) {
                     print("NEXUS", data.candidates[0].content.parts[0].text);
+                } else {
+                    print("ERR", "Brain unreachable. Check API Key.");
                 }
             } catch (e) {
-                print("ERR", "Network Failure");
+                print("ERR", "Network Failure. Check internet.");
             }
         }
 
-        ui.addEventListener('keydown', (e) => { if (e.key === 'Enter') run(); });
+        // Handle physical Enter key on Fold 7
+        ui.addEventListener('keydown', (e) => { 
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                run();
+            }
+        });
     </script>
 </body>
 </html>
