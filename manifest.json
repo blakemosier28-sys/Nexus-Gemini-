@@ -1,6 +1,6 @@
 {
   "name": "NEXUS Sovereign",
-  "short_name": "NEXUS",
+  "short_name": "nexus",
   "start_url": "index.html",
   "display": "standalone",
   "background_color": "#000000",
