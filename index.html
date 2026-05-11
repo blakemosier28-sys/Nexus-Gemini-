@@ -1,76 +1,102 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>NEXUS SOVEREIGN</title>
     <style>
-        body { background: #000; color: #00ff41; font-family: 'Courier New', monospace; margin: 0; padding: 10px; }
-        #term { height: 75vh; overflow-y: auto; border: 1px solid #00ff41; padding: 10px; background: #000d00; margin-bottom: 10px; font-size: 14px; }
-        .row { display: flex; gap: 5px; }
+        /* Terminal Styling for Smart Glasses */
+        body { background: #000; color: #00ff41; font-family: 'Courier New', monospace; margin: 0; padding: 10px; overflow: hidden; }
+        #terminal { height: 70vh; overflow-y: auto; border: 1px solid #00ff41; padding: 10px; background: rgba(0,20,0,0.9); font-size: 14px; line-height: 1.4; margin-bottom: 10px; }
+        .input-wrap { display: flex; gap: 5px; }
         input { flex: 1; background: #000; border: 1px solid #00ff41; color: #00ff41; padding: 12px; font-size: 16px; outline: none; }
         button { background: #00ff41; color: #000; border: none; padding: 10px 15px; font-weight: bold; cursor: pointer; }
         .log { margin-bottom: 8px; border-left: 2px solid #004400; padding-left: 8px; }
+        .sys { color: #008f11; font-style: italic; }
     </style>
 </head>
 <body>
-    <div style="font-size: 0.8em; margin-bottom: 5px; color: #008f11;">NEXUS_v3.1 | ENGINE: GEMINI_3.1_PRO</div>
-    <div id="term">TERMINAL READY...</div>
-    <div class="row">
-        <input type="text" id="in" placeholder="Command NEXUS..." autocomplete="off">
+    <div style="font-size: 0.7em; margin-bottom: 5px; color: #008f11;">NEXUS_v3.1 | ENGINE: GEMINI_PRO_2026</div>
+    
+    <div id="terminal">
+        <div class="log">[SYSTEM] INITIALIZING HANDSHAKE...</div>
+    </div>
+
+    <div class="input-wrap">
+        <input type="text" id="userInput" placeholder="Command..." autocomplete="off">
         <button onclick="run()">SEND</button>
     </div>
 
     <script>
-        // YOUR API KEY
-        const KEY = "AIzaSyCRt0MNX7qoLh9N3nS1BPrmMXdZ7HBTcXY";
-        const box = document.getElementById('term');
-        const ui = document.getElementById('in');
+        // --- CONFIGURATION ---
+        const API_KEY = "AIzaSyCRt0MNX7qoLh9N3nS1BPrmMXdZ7HBTcXY";
+        const term = document.getElementById('terminal');
+        const input = document.getElementById('userInput');
 
-        function print(s, m) {
-            box.innerHTML += `<div class="log"><strong>[${s}]</strong> ${m}</div>`;
-            box.scrollTop = box.scrollHeight;
+        // --- MENTRA HANDSHAKE (Fixes Grey Screen) ---
+        window.onload = () => {
+            updateLog("SYSTEM", "Handshake Ready.");
+            // Tells Mentra App the code is loaded and ready to display
+            if (window.parent) {
+                window.parent.postMessage({ type: 'APP_READY' }, '*');
+            }
+        };
+
+        function updateLog(src, msg) {
+            const div = document.createElement('div');
+            div.className = 'log';
+            if (src === "SYS") div.className += " sys";
+            div.innerHTML = `<strong>[${src}]</strong> ${msg}`;
+            term.appendChild(div);
+            term.scrollTop = term.scrollHeight;
         }
 
         async function run() {
-            const txt = ui.value.trim();
-            if (!txt) return;
+            const val = input.value.trim();
+            if (!val) return;
 
-            print("USER", txt);
-            ui.value = "";
-            print("SYS", "Querying Gemini 3.1 Pro...");
+            updateLog("USER", val);
+            input.value = ''; 
+            updateLog("SYS", "Querying Gemini Brain...");
 
             try {
-                // OFFICIAL 2026 PRODUCTION ENDPOINT FOR 3.1 PRO
-                const url = https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${KEY};
+                // Using the most stable 2026 Production Endpoint
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${API_KEY}`;
                 
-                const res = await fetch(url, {
+                const response = await fetch(url, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: txt }] }] })
+                    body: JSON.stringify({ contents: [{ parts: [{ text: val }] }] })
                 });
 
-                const data = await res.json();
+                const data = await response.json();
                 
                 if (data.error) {
-                    print("ERR", data.error.message);
-                } else if (data.candidates && data.candidates[0].content) {
-                    print("NEXUS", data.candidates[0].content.parts[0].text);
-                } else {
-                    print("ERR", "Brain unreachable. Check API Key.");
+                    updateLog("ERROR", data.error.message);
+                } else if (data.candidates) {
+                    const res = data.candidates[0].content.parts[0].text;
+                    updateLog("NEXUS", res);
+                    
+                    // Voice support if Mentra SDK is active
+                    if (window.mentra) {
+                        window.mentra.audio.speak(res);
+                    }
                 }
-            } catch (e) {
-                print("ERR", "Network Failure. Check internet.");
+            } catch (err) {
+                updateLog("ERROR", "Connection Timeout. Check Fold 7 signal.");
             }
         }
 
-        // Handle physical Enter key on Fold 7
-        ui.addEventListener('keydown', (e) => { 
+        // Handle physical keyboard Enter key
+        input.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 run();
             }
         });
+
+        // Force focus for smart glasses
+        document.body.addEventListener('click', () => input.focus());
     </script>
 </body>
 </html>
